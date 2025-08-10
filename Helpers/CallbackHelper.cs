@@ -9,7 +9,7 @@ namespace DeliveryTgBot.Helpers
     {
          public static bool IsAddressCallback(string data)
         {
-            return data.StartsWith("address:");
+            return data.StartsWith("addr_");
         }
     }
 }

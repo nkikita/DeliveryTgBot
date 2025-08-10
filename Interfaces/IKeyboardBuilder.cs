@@ -5,8 +5,9 @@ using System.Threading.Tasks;
 
 namespace DeliveryTgBot.Interfaces
 {
-    public interface IKeyboardBuilder
+   public interface IKeyboardBuilder
     {
-        InlineKeyboardMarkup BuildAddressKeyboard(List<string> addresses);
+        (InlineKeyboardMarkup keyboard, Dictionary<string, string> map) BuildAddressKeyboard(List<string> addresses);
     }
+
 }

@@ -13,6 +13,8 @@ namespace DeliveryTgBot.Handlers
         private readonly IOrderService _orderService;
         private readonly IOrderNotificationService _orderNotificationService;
         private readonly ConcurrentDictionary<long, bool> _waitingForComment = new ConcurrentDictionary<long, bool>();
+        private readonly ConcurrentDictionary<long, Dictionary<string, string>> _userAddressMaps = new();
+
         public BotHandler(
             ITelegramService telegramService,
             IDriverService driverService,
@@ -62,18 +64,31 @@ namespace DeliveryTgBot.Handlers
                 return;
             }
 
-            var keyboard = _keyboardTGBuilder.BuildAddressKeyboard(suggestions);
+            var (keyboard, map) = _keyboardTGBuilder.BuildAddressKeyboard(suggestions);
+            _userAddressMaps[chatId] = map;
             await _telegramService.SendTextMessageAsync(chatId, "Выберите адрес из списка:", replyMarkup: keyboard);
+
         }
         public async Task HandleAddressSelectionAsync(long chatId, string selectedAddress)
         {
-            // Сохрани выбранный адрес в состоянии пользователя или базе (зависит от архитектуры)
+            // Получаем текущий заказ
+            var currentOrder = await _orderCacheService.GetOrCreateOrderAsync(chatId);
 
+            // Записываем выбранный адрес
+            currentOrder.DeliveryAdress = selectedAddress;
+
+            // Сохраняем изменения в кэше и в базе
+            await _orderCacheService.SaveOrderAsync(currentOrder);
+            await _orderService.SaveOrderAsync(currentOrder);
+
+            // Отправляем сообщение пользователю
             await _telegramService.SendTextMessageAsync(chatId, $"Вы выбрали адрес: {selectedAddress}");
 
-            // Далее продолжай логику заказа, например, переход к выбору даты и времени
+            // Можно добавить переход к следующему шагу, например, выбору даты
+            // await _telegramService.SendTextMessageAsync(chatId, "Пожалуйста, выберите дату доставки...");
         }
 
+      
         public async Task HandleUpdateAsync(Update update)
         {
             Console.WriteLine($"Получено обновление: {update.Type} от {update.Message?.Chat.Id ?? update.CallbackQuery?.Message.Chat.Id}");
@@ -90,24 +105,31 @@ namespace DeliveryTgBot.Handlers
                 var text = update.Message.Text;
                 var currentOrder = await _orderCacheService.GetOrCreateOrderAsync(chatId);
                 
-                if (_waitingForComment.TryGetValue(chatId, out var isWaiting) && isWaiting)
+                    if (_waitingForComment.TryGetValue(chatId, out var isWaiting) && isWaiting)
+                    {
+                        var comment = text.Trim();
+                        if (comment == "-") comment = string.Empty;
+
+                        currentOrder.CommentFromUsers = comment;
+
+                        await _orderCacheService.SaveOrderAsync(currentOrder);
+                        await _orderService.SaveOrderAsync(currentOrder);
+
+                        _waitingForComment.TryRemove(chatId, out _);
+
+                        await _telegramService.SendTextMessageAsync(chatId, "Введите адрес доставки (пример: Ленина 12):");
+
+                        // Не вызываем HandleAddressQueryAsync здесь — ждем, пока пользователь введёт адрес и отправит сообщение
+                        return;
+                    }
+
+                if (currentOrder.CommentFromUsers != null && currentOrder.DeliveryAdress == null)
                 {
-                    var comment = text.Trim();
-                    if (comment == "-") comment = string.Empty;
-
-                    currentOrder.CommentFromUsers = comment;
-
-                    await _orderCacheService.SaveOrderAsync(currentOrder);
-                    await _orderService.SaveOrderAsync(currentOrder);
-
-                    await _telegramService.SendTextMessageAsync(chatId, "✅ Заявка заполнена. Отправляю водителю...");
-
-                    await _orderNotificationService.NotifyDriverAsync(currentOrder);
-
-                    _waitingForComment.TryRemove(chatId, out _);
+                    // Пользователь вводит адрес (текст)
+                    // Запрашиваем подсказки и показываем клавиатуру
+                    await HandleAddressQueryAsync(chatId, text);
                     return;
                 }
-
 
                 if (text == "/reset")
                 {
@@ -128,7 +150,8 @@ namespace DeliveryTgBot.Handlers
                     // Заказ заполнен — сохраняем в базу
                     await _orderService.SaveOrderAsync(currentOrder);
                     await _telegramService.SendTextMessageAsync(chatId, "✅ Заявка заполнена. Отправляю водителю...");
-                    await HandleAddressQueryAsync(chatId, text);
+                    await _orderNotificationService.NotifyDriverAsync(currentOrder);
+
                     // Можно отправить сообщение о том, что заказ сохранен и обработка завершена
                     //await _telegramService.SendTextMessageAsync(chatId, "Ваш заказ сохранён и обработка завершена.");
                 }
@@ -226,11 +249,27 @@ namespace DeliveryTgBot.Handlers
                 var chatId = callback.Message.Chat.Id;
                 var data = callback.Data;
                 var currentOrder = await _orderCacheService.GetOrCreateOrderAsync(chatId);
-                if (CallbackHelper.IsAddressCallback(data))
+
+            
+                if (data.StartsWith("addr_"))
                 {
+                    if (_userAddressMaps.TryGetValue(chatId, out var map))
+                    {
+                        if (map.TryGetValue(data, out var selectedAddress))
+                        {
+                            await HandleAddressSelectionAsync(chatId, selectedAddress);
+                            return;
+                        }
+                    }
+                }
+
+              /*  if (CallbackHelper.IsAddressCallback(data))
+                {
+                    Console.WriteLine("ПРОВЕРКА ЛОГА ВЫВОДА АДРЕСА");
                     await HandleAddressSelectionAsync(chatId, data);
                     return;
                 }
+*/
                 if (data.StartsWith("city_") || data.StartsWith(new RequestDateInfo().KeyWord) || data.StartsWith("driver_"))
                 {
                     await _telegramService.EditMessageReplyMarkupAsync(
