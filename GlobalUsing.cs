@@ -1,7 +1,6 @@
-global using System;
+global using System.Text.Json;
 global using System.Collections.Generic;
 global using System.Threading;
-global using System.Threading.Tasks;
 global using Telegram.Bot;
 global using Telegram.Bot.Types;
 global using Telegram.Bot.Types.Enums;
@@ -12,5 +11,6 @@ global using DeliveryTgBot.Interfaces;
 global using DeliveryTgBot.Services;
 global using DeliveryTgBot.Handlers;
 global using DeliveryTgBot.Data;
+global using DeliveryTgBot.Helpers;
 
 global using DeliveryTgbot.Models;

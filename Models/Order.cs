@@ -14,7 +14,7 @@ public class Order
     [JsonIgnore]
     public OrderStatus Status { get; set; } = OrderStatus.Created;
     public string? DriverResponseReason { get; set; }
-  
+    public string? DeliveryAdress { get; set; } 
 
     public string? CommentFromUsers { get; set; }
     
