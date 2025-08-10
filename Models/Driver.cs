@@ -10,5 +10,6 @@ public class Driver
     public decimal PricePerVolume { get; set; } // Цена за объем
     public double MaxVolume { get; set; } // Максимальный объем
     public string? Contact { get; set; }
+    public long TelegramId { get; set; } // chatId
     public bool IsAvailable { get; set; } = true;
 }

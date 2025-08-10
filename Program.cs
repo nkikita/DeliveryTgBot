@@ -19,9 +19,12 @@ IDriverService driverService = new DriverService(dbContext);
 IOrderCacheService orderService = new OrderCacheService();
 ICityService cityService = new CityService(dbContext);
 IOrderService DBorderService = new OrderService(dbContext);
+ICalendarService calendarService = new CalendarService();
 ITelegramService telegramService = new TelegramService(new TelegramBotClient("7617124159:AAHzbKa64p9Nlx0c6m0u5M_4m0P1NDtAMbA"));
 
-var handler = new BotHandler(telegramService, driverService,DBorderService, orderService,cityService);
+IOrderNotificationService orderNotificationService = new TelegramOrderNotificationService(telegramService,driverService);
+
+var handler = new BotHandler(telegramService, driverService,DBorderService, orderService,cityService,calendarService,orderNotificationService);
 
 
 

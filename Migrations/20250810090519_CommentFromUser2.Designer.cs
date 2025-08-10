@@ -3,6 +3,7 @@ using System;
 using DeliveryTgBot.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace DeliveryTgBot.Migrations
 {
     [DbContext(typeof(DeliveryDbContext))]
-    partial class DeliveryDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250810090519_CommentFromUser2")]
+    partial class CommentFromUser2
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -62,9 +65,6 @@ namespace DeliveryTgBot.Migrations
                     b.Property<decimal>("PricePerVolume")
                         .HasColumnType("numeric");
 
-                    b.Property<long>("TelegramId")
-                        .HasColumnType("bigint");
-
                     b.HasKey("Id");
 
                     b.HasIndex("CityId");
@@ -95,6 +95,12 @@ namespace DeliveryTgBot.Migrations
 
                     b.Property<string>("DriverResponseReason")
                         .HasColumnType("text");
+
+                    b.Property<bool>("IsWaitingForComment")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsWaitingForTime")
+                        .HasColumnType("boolean");
 
                     b.Property<int>("Status")
                         .HasColumnType("integer");
