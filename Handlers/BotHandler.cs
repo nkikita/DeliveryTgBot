@@ -14,6 +14,7 @@ namespace DeliveryTgBot.Handlers
         private readonly IOrderNotificationService _orderNotificationService;
         private readonly ConcurrentDictionary<long, bool> _waitingForComment = new ConcurrentDictionary<long, bool>();
         private readonly ConcurrentDictionary<long, Dictionary<string, string>> _userAddressMaps = new();
+         private readonly ConcurrentDictionary<long, int> _addressKeyboardMessageIds = new();
 
         public BotHandler(
             ITelegramService telegramService,
@@ -38,6 +39,15 @@ namespace DeliveryTgBot.Handlers
         }
         private static bool IsOrderComplete(Order order)
         {
+                Console.WriteLine("=== Проверка заказа ===");
+                Console.WriteLine($"CityId: {order.CityId}");
+                Console.WriteLine($"Volume: {order.Volume}");
+                Console.WriteLine($"VehiclesCount: {order.VehiclesCount}");
+                Console.WriteLine($"AssignedDriverId: {order.AssignedDriverId}");
+                Console.WriteLine($"DeliveryDateTime: {order.DeliveryDateTime}");
+                Console.WriteLine($"CommentFromUsers: {(order.CommentFromUsers == null ? "null" : $"'{order.CommentFromUsers}'")}");
+                Console.WriteLine($"DeliveryAdress: {(order.DeliveryAdress == null ? "null" : $"'{order.DeliveryAdress}'")}");
+                Console.WriteLine("======================");
             return order.CityId != null
                 && order.Volume > 0
                 && order.VehiclesCount > 0
@@ -63,11 +73,10 @@ namespace DeliveryTgBot.Handlers
                 await _telegramService.SendTextMessageAsync(chatId, "Адрес не найден, попробуйте ввести подробнее.");
                 return;
             }
-
-            var (keyboard, map) = _keyboardTGBuilder.BuildAddressKeyboard(suggestions);
+              var (keyboard, map) = _keyboardTGBuilder.BuildAddressKeyboard(suggestions);
             _userAddressMaps[chatId] = map;
             await _telegramService.SendTextMessageAsync(chatId, "Выберите адрес из списка:", replyMarkup: keyboard);
-
+            
         }
         public async Task HandleAddressSelectionAsync(long chatId, string selectedAddress)
         {
@@ -80,10 +89,16 @@ namespace DeliveryTgBot.Handlers
             // Сохраняем изменения в кэше и в базе
             await _orderCacheService.SaveOrderAsync(currentOrder);
             await _orderService.SaveOrderAsync(currentOrder);
+           
+
 
             // Отправляем сообщение пользователю
             await _telegramService.SendTextMessageAsync(chatId, $"Вы выбрали адрес: {selectedAddress}");
-
+            if (IsOrderComplete(currentOrder))
+            {
+                await _telegramService.SendTextMessageAsync(chatId, "✅ Заявка заполнена. Отправляю водителю...");
+                await _orderNotificationService.NotifyDriverAsync(currentOrder);
+            }
             // Можно добавить переход к следующему шагу, например, выбору даты
             // await _telegramService.SendTextMessageAsync(chatId, "Пожалуйста, выберите дату доставки...");
         }
@@ -143,18 +158,7 @@ namespace DeliveryTgBot.Handlers
                     await _telegramService.SendTextMessageAsync(chatId, "👋 Привет! Рады видеть вас. Для начала выберите город, в котором хотите сделать заказ. 🌍:", CityButtons3);
                     return;
                 }
-                // После любого обновления заказа, например, после установки всех параметров:
-
-                if (IsOrderComplete(currentOrder))
-                {
-                    // Заказ заполнен — сохраняем в базу
-                    await _orderService.SaveOrderAsync(currentOrder);
-                    await _telegramService.SendTextMessageAsync(chatId, "✅ Заявка заполнена. Отправляю водителю...");
-                    await _orderNotificationService.NotifyDriverAsync(currentOrder);
-
-                    // Можно отправить сообщение о том, что заказ сохранен и обработка завершена
-                    //await _telegramService.SendTextMessageAsync(chatId, "Ваш заказ сохранён и обработка завершена.");
-                }
+                
                 else
                 {
                     // Иначе просто обновляем кэш
@@ -176,6 +180,8 @@ namespace DeliveryTgBot.Handlers
                         await _telegramService.SendTextMessageAsync(chatId,
                             $"📅 Отлично! Дата и время доставки успешно установлены на {currentOrder.DeliveryDateTime:yyyy-MM-dd HH:mm}. двигаемся дальше! ➡️");
                         _waitingForComment[chatId] = true;
+                        currentOrder.ClientTelegramUsername = update.Message.From.Username;
+
                         await _telegramService.SendTextMessageAsync(chatId, "💬 Есть пожелания для водителя? Напишите их здесь. Если комментариев нет — просто отправьте '-' (минус). ✍️:");
                     }
                     else
@@ -269,7 +275,7 @@ namespace DeliveryTgBot.Handlers
                     await HandleAddressSelectionAsync(chatId, data);
                     return;
                 }
-*/
+              */  
                 if (data.StartsWith("city_") || data.StartsWith(new RequestDateInfo().KeyWord) || data.StartsWith("driver_"))
                 {
                     await _telegramService.EditMessageReplyMarkupAsync(
@@ -290,7 +296,7 @@ namespace DeliveryTgBot.Handlers
                             // НЕ трогаем currentOrder.City напрямую — EF сам подтянет по CityId при необходимости
                             await _orderCacheService.SaveOrderAsync(currentOrder);
 
-                           await _telegramService.SendTextMessageAsync(chatId, $"📍 Отлично, выбран город — {selectedCity.CityName}.\nВведите объем груза:");
+                           await _telegramService.SendTextMessageAsync(chatId, $"📍 Отлично, выбран город — {selectedCity.CityName}.\nВведите объем груза(число от 1 до 5):");
                         }
                     }
                     return;

@@ -27,8 +27,9 @@ namespace DeliveryTgBot.Services
             if (driver == null)
                 throw new InvalidOperationException("Водитель не найден.");
 
-            string message = $"🚚 Новый заказ!\n" +
+            string message = $"🚚 Новый заказ от @{order.ClientTelegramUsername}!\n" +
                             $"📍 Город: {driver.City.CityName}\n" +
+                            $"🚩 Адрес: {order.DeliveryAdress}\n"+
                             $"📦 Объем: {order.Volume}\n" +
                             $"🚗 Кол-во авто: {order.VehiclesCount}\n" +
                             $"📅 Дата: {order.DeliveryDateTime:yyyy-MM-dd HH:mm}\n" +

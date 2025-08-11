@@ -3,6 +3,7 @@ using System;
 using DeliveryTgBot.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace DeliveryTgBot.Migrations
 {
     [DbContext(typeof(DeliveryDbContext))]
-    partial class DeliveryDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250811191236_AddDrivrsToOrder")]
+    partial class AddDrivrsToOrder
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -87,9 +90,6 @@ namespace DeliveryTgBot.Migrations
                     b.Property<long>("ClientTelegramId")
                         .HasColumnType("bigint");
 
-                    b.Property<string>("ClientTelegramUsername")
-                        .HasColumnType("text");
-
                     b.Property<string>("CommentFromUsers")
                         .HasColumnType("text");
 
@@ -98,6 +98,9 @@ namespace DeliveryTgBot.Migrations
 
                     b.Property<DateTime>("DeliveryDateTime")
                         .HasColumnType("timestamp without time zone");
+
+                    b.Property<Guid>("DriverDataId")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("DriverResponseReason")
                         .HasColumnType("text");
@@ -114,6 +117,8 @@ namespace DeliveryTgBot.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("CityId");
+
+                    b.HasIndex("DriverDataId");
 
                     b.ToTable("Orders");
                 });
@@ -135,7 +140,15 @@ namespace DeliveryTgBot.Migrations
                         .WithMany()
                         .HasForeignKey("CityId");
 
+                    b.HasOne("DeliveryTgbot.Models.Driver", "DriverData")
+                        .WithMany()
+                        .HasForeignKey("DriverDataId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.Navigation("City");
+
+                    b.Navigation("DriverData");
                 });
 #pragma warning restore 612, 618
         }

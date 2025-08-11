@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("DeliveryTgBot")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+effdca81344416fca7e91cc929a3dd006a07431c")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+58bcbd67984fa1d0cf85a6a46d44272ffe78123a")]
 [assembly: System.Reflection.AssemblyProductAttribute("DeliveryTgBot")]
 [assembly: System.Reflection.AssemblyTitleAttribute("DeliveryTgBot")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
