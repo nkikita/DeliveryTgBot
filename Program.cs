@@ -2,41 +2,82 @@
 using Telegram.Bot;
 using Telegram.Bot.Polling;
 using DeliveryTgBot.Data;
-using Microsoft.Extensions.Logging; 
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using DeliveryTgBot.Interfaces;
+using DeliveryTgBot.Services;
+using DeliveryTgBot.Handlers;
+using DeliveryTgBot.Handlers.Commands;
+using DeliveryTgBot.Handlers.Callbacks;
 
-// 1. Настраиваем DbContext вручную с опциями
-var optionsBuilder = new DbContextOptionsBuilder<DeliveryDbContext>();
-optionsBuilder.UseNpgsql("Host=localhost;Database=deliverydb;Username=postgres;Password=111");
-optionsBuilder
-    .UseNpgsql("Host=localhost;Database=deliverydb;Username=postgres;Password=111")
-    .LogTo(Console.WriteLine, LogLevel.Information)   // логируем запросы и ошибки
-    .EnableSensitiveDataLogging();    
-using var dbContext = new DeliveryDbContext(optionsBuilder.Options);
-dbContext.Database.Migrate();
-var httpClient = new HttpClient();
+// Create host builder for dependency injection
+var host = Host.CreateDefaultBuilder(args)
+    .ConfigureServices((context, services) =>
+    {
+        // Register configuration service
+        services.AddSingleton<IConfigurationService, ConfigurationService>();
+        
+        // Configure DbContext
+        services.AddDbContext<DeliveryDbContext>((serviceProvider, options) =>
+        {
+            var config = serviceProvider.GetRequiredService<IConfigurationService>();
+            options.UseNpgsql(config.DatabaseConnectionString)
+                   .LogTo(Console.WriteLine, LogLevel.Information)
+                   .EnableSensitiveDataLogging();
+        });
 
-// 2. Создаём сервисы, передавая dbContext
-IDriverService driverService = new DriverService(dbContext);
-IOrderCacheService orderService = new OrderCacheService();
-ICityService cityService = new CityService(dbContext);
-IOrderService DBorderService = new OrderService(dbContext);
-ICalendarService calendarService = new CalendarService();
-IKeyboardBuilder keyboardBuilder = new TelegramKeyboardBuilder();
-IAddressService addressService = new YandexAddressService(httpClient, "c94023be-a9fe-4530-b47e-7ee3296a33b8");
-ITelegramService telegramService = new TelegramService(new TelegramBotClient("7617124159:AAHzbKa64p9Nlx0c6m0u5M_4m0P1NDtAMbA"));
+        // Register services
+        services.AddHttpClient();
+        services.AddScoped<IDriverService, DriverService>();
+        services.AddScoped<IOrderCacheService, OrderCacheService>();
+        services.AddScoped<ICityService, CityService>();
+        services.AddScoped<IOrderService, OrderService>();
+        services.AddScoped<ICalendarService, CalendarService>();
+        services.AddScoped<IKeyboardBuilder, TelegramKeyboardBuilder>();
+        services.AddScoped<IAddressService, YandexAddressService>();
+        services.AddScoped<TelegramServiceFactory>();
+        services.AddScoped<ITelegramService>(serviceProvider => 
+        {
+            var factory = serviceProvider.GetRequiredService<TelegramServiceFactory>();
+            return factory.Create();
+        });
+        services.AddScoped<IOrderNotificationService, TelegramOrderNotificationService>();
+        
+        // Register new SOLID-compliant services
+        services.AddScoped<IOrderStateManager, OrderStateManager>();
+        services.AddScoped<MessageProcessor>();
+        
+        // Register command handlers
+        services.AddScoped<ICommandHandler, StartCommandHandler>();
+        services.AddScoped<ICommandHandler, ResetCommandHandler>();
+        
+        // Register callback handlers
+        services.AddScoped<ICallbackHandler, CityCallbackHandler>();
+        services.AddScoped<ICallbackHandler, DriverCallbackHandler>();
+        
+        // Register main handler
+        services.AddScoped<BotHandler>();
+    })
+    .Build();
 
-IOrderNotificationService orderNotificationService = new TelegramOrderNotificationService(telegramService,driverService);
+// Ensure database is migrated
+using (var scope = host.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<DeliveryDbContext>();
+    dbContext.Database.Migrate();
+}
 
-var handler = new BotHandler(telegramService, driverService,DBorderService, orderService,cityService,calendarService,orderNotificationService, keyboardBuilder, addressService);
+// Get services from DI container
+var telegramService = host.Services.GetRequiredService<ITelegramService>();
+var botHandler = host.Services.GetRequiredService<BotHandler>();
 
-
-
+// Configure bot
 using var cts = new CancellationTokenSource();
-
 var receiverOptions = new ReceiverOptions { AllowedUpdates = null };
 
 telegramService.BotClient.StartReceiving(
-    async (botClient, update, cancellationToken) => await handler.HandleUpdateAsync(update),
+    async (botClient, update, cancellationToken) => await botHandler.HandleUpdateAsync(update),
     async (botClient, exception, cancellationToken) => Console.WriteLine($"Ошибка: {exception.Message}"),
     receiverOptions,
     cts.Token

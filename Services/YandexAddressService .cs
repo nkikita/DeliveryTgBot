@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Text.Json;
 
 
 namespace DeliveryTgBot.Services
@@ -9,12 +10,12 @@ namespace DeliveryTgBot.Services
     public class YandexAddressService : IAddressService
     {
         private readonly HttpClient _httpClient;
-        private readonly string _apiKey;
+        private readonly IConfigurationService _configurationService;
 
-        public YandexAddressService(HttpClient httpClient, string apiKey)
+        public YandexAddressService(HttpClient httpClient, IConfigurationService configurationService)
         {
             _httpClient = httpClient;
-            _apiKey = apiKey;
+            _configurationService = configurationService;
         }
         public string ExtractStreetAndHouse(string fullAddress, string cityName)
         {
@@ -39,7 +40,7 @@ namespace DeliveryTgBot.Services
         {
             string queryWithCity = $"{cityName}, {query}";
             string url = $"https://geocode-maps.yandex.ru/1.x/?" +
-                $"apikey={_apiKey}" +
+                $"apikey={_configurationService.YandexApiKey}" +
                 $"&geocode={Uri.EscapeDataString(queryWithCity)}" +
                 $"&format=json&lang=ru_RU&results={5}";
 

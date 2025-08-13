@@ -19,3 +19,5 @@ build_property.RootNamespace = DeliveryTgBot
 build_property.ProjectDir = C:\vscode\DeliveryTgBot\DeliveryTgBot\
 build_property.EnableComHosting = 
 build_property.EnableGeneratedComInterfaceComImportInterop = 
+build_property.EffectiveAnalysisLevelStyle = 8.0
+build_property.EnableCodeStyleSeverity = 
