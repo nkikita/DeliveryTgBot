@@ -5,5 +5,6 @@ namespace DeliveryTgBot.Interfaces
         string TelegramBotToken { get; }
         string YandexApiKey { get; }
         string DatabaseConnectionString { get; }
+        long ManagerTelegramUserId { get; }
     }
 }

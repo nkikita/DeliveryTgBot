@@ -7,7 +7,7 @@ namespace DeliveryTgBot.Interfaces
 {
     public interface IOrderNotificationService
     {
-        Task NotifyDriverAsync(Order order);
+        Task NotifyManagerAsync(Order order);
     }
 
 }

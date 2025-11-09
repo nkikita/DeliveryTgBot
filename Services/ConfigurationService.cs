@@ -1,4 +1,5 @@
 using DeliveryTgBot.Interfaces;
+using Microsoft.Extensions.Configuration;
 
 namespace DeliveryTgBot.Services
 {
@@ -7,13 +8,21 @@ namespace DeliveryTgBot.Services
         public string TelegramBotToken { get; }
         public string YandexApiKey { get; }
         public string DatabaseConnectionString { get; }
+        public long ManagerTelegramUserId { get; }
 
-        public ConfigurationService()
+        public ConfigurationService(IConfiguration configuration)
         {
-            // In a real application, these would come from environment variables or configuration files
-            TelegramBotToken = "7617124159:AAHzbKa64p9Nlx0c6m0u5M_4m0P1NDtAMbA";
-            YandexApiKey = "c94023be-a9fe-4530-b47e-7ee3296a33b8";
-            DatabaseConnectionString = "Host=localhost;Database=deliverydb;Username=postgres;Password=111";
+            // Prefer values from appsettings/environment; fallback to existing defaults
+            TelegramBotToken = configuration["Telegram:BotToken"] ?? "";
+            YandexApiKey = configuration["Yandex:ApiKey"] ?? "";
+            DatabaseConnectionString = configuration.GetConnectionString("Default") ?? "Host=localhost;Database=deliverydb;Username=postgres;Password=111";
+
+            var managerIdStr = configuration["Manager:TelegramUserId"];
+            if (!long.TryParse(managerIdStr, out var managerId))
+            {
+                managerId = 0;
+            }
+            ManagerTelegramUserId = managerId;
         }
     }
 }

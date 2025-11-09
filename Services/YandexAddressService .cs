@@ -24,7 +24,7 @@ namespace DeliveryTgBot.Services
 
             int cityIndex = fullAddress.IndexOf(cityName, StringComparison.OrdinalIgnoreCase);
             if (cityIndex == -1)
-                return fullAddress;
+                return null;
 
             int startIndex = cityIndex + cityName.Length;
 

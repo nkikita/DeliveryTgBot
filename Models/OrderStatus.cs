@@ -2,7 +2,7 @@ namespace DeliveryTgbot.Models;
 public enum OrderStatus
 {
     Created,
-    PendingDriverResponse,
+    PendingManagerReview,
     Confirmed,
     Rejected
 }

@@ -29,7 +29,6 @@ var host = Host.CreateDefaultBuilder(args)
 
         // Register services
         services.AddHttpClient();
-        services.AddScoped<IDriverService, DriverService>();
         services.AddScoped<IOrderCacheService, OrderCacheService>();
         services.AddScoped<ICityService, CityService>();
         services.AddScoped<IOrderService, OrderService>();
@@ -54,7 +53,6 @@ var host = Host.CreateDefaultBuilder(args)
         
         // Register callback handlers
         services.AddScoped<ICallbackHandler, CityCallbackHandler>();
-        services.AddScoped<ICallbackHandler, DriverCallbackHandler>();
         
         // Register main handler
         services.AddScoped<BotHandler>();

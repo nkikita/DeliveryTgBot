@@ -7,18 +7,15 @@ namespace DeliveryTgBot.Services
     {
         private readonly ITelegramService _telegramService;
         private readonly IOrderService _orderService;
-        private readonly IDriverService _driverService;
         private readonly IOrderNotificationService _orderNotificationService;
 
         public OrderStateManager(
             ITelegramService telegramService,
             IOrderService orderService,
-            IDriverService driverService,
             IOrderNotificationService orderNotificationService)
         {
             _telegramService = telegramService;
             _orderService = orderService;
-            _driverService = driverService;
             _orderNotificationService = orderNotificationService;
         }
 
@@ -70,15 +67,14 @@ namespace DeliveryTgBot.Services
             var isComplete = order.CityId != null
                 && order.Volume > 0
                 && order.VehiclesCount > 0
-                && order.AssignedDriverId != null
                 && order.DeliveryDateTime != default
                 && order.CommentFromUsers != null
                 && order.DeliveryAdress != null;
 
             if (isComplete)
             {
-                await _telegramService.SendTextMessageAsync(order.ClientTelegramId, "✅ Заявка заполнена. Отправляю водителю...");
-                await _orderNotificationService.NotifyDriverAsync(order);
+                await _telegramService.SendTextMessageAsync(order.ClientTelegramId, "✅ Заявка заполнена. Мы передали её менеджеру. Ожидайте ответ.");
+                await _orderNotificationService.NotifyManagerAsync(order);
             }
 
             return isComplete;
@@ -88,7 +84,7 @@ namespace DeliveryTgBot.Services
         {
             if (order.Volume == 0)
             {
-                return "Введите объем груза(число от 1 до 5):";
+                return "Введите объем груза:";
             }
 
             if (order.VehiclesCount == 0)
@@ -96,15 +92,7 @@ namespace DeliveryTgBot.Services
                 return "Введите количество авто:";
             }
 
-            if (order.AssignedDriverId == null)
-            {
-                var drivers = await _driverService.GetAvailableDriversAsync(order.CityId.Value, order.Volume, order.VehiclesCount);
-                if (!drivers.Any())
-                {
-                    return "😕 Извините, но сейчас нет свободных водителей под ваши параметры. Попробуйте изменить запрос или позже.";
-                }
-                return "👤 Пожалуйста, выберите водителя из списка:";
-            }
+            // Driver selection removed
 
             if (order.DeliveryDateTime.Date == default)
             {
@@ -118,7 +106,7 @@ namespace DeliveryTgBot.Services
 
             if (order.CommentFromUsers == null)
             {
-                return "💬 Есть пожелания для водителя? Напишите их здесь. Если комментариев нет — просто отправьте '-' (минус). ✍️:";
+                return "💬 Есть пожелания для заказа? Напишите их здесь. Если комментариев нет — просто отправьте '-' (минус). ✍️:";
             }
 
             if (order.DeliveryAdress == null)

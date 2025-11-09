@@ -5,7 +5,6 @@ namespace DeliveryTgBot.Data
     public class DeliveryDbContext : DbContext
     {
         public DbSet<Order> Orders { get; set; }
-        public DbSet<Driver> Drivers { get; set; }
         public DbSet<Cityes> Cityes { get; set; }
 
         public DeliveryDbContext(DbContextOptions<DeliveryDbContext> options)

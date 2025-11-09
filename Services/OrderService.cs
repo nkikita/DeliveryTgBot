@@ -57,9 +57,8 @@ public class OrderService : IOrderService
         existingOrder.Volume = order.Volume;
         existingOrder.VehiclesCount = order.VehiclesCount;
         existingOrder.DeliveryDateTime = order.DeliveryDateTime;
-        existingOrder.AssignedDriverId = order.AssignedDriverId;
         existingOrder.Status = order.Status;
-        existingOrder.DriverResponseReason = order.DriverResponseReason;
+        // Removed driver-related fields
         // остальные поля, если нужно
     }
     await _context.SaveChangesAsync();

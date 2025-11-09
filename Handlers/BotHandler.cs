@@ -24,7 +24,6 @@ namespace DeliveryTgBot.Handlers
 
         public BotHandler(
             ITelegramService telegramService,
-            IDriverService driverService,
             IOrderService orderService,
             IOrderCacheService orderCacheService,
             ICityService cityService,
@@ -40,7 +39,7 @@ namespace DeliveryTgBot.Handlers
             _orderNotificationService = orderNotificationService;
             
             // Initialize order state manager
-            _orderStateManager = new OrderStateManager(telegramService, orderService, driverService, orderNotificationService);
+            _orderStateManager = new OrderStateManager(telegramService, orderService, orderNotificationService);
             
             // Initialize message processor
             _messageProcessor = new MessageProcessor(
@@ -49,7 +48,6 @@ namespace DeliveryTgBot.Handlers
                 telegramService, 
                 addressService, 
                 keyboardBuilder, 
-                driverService, 
                 orderService);
             
             // Initialize command handlers
@@ -62,8 +60,7 @@ namespace DeliveryTgBot.Handlers
             // Initialize callback handlers
             _callbackHandlers = new List<ICallbackHandler>
             {
-                new CityCallbackHandler(telegramService, orderCacheService, cityService),
-                new DriverCallbackHandler(telegramService, orderCacheService, orderService, driverService)
+                new CityCallbackHandler(telegramService, orderCacheService, cityService)
             };
         }
 
@@ -120,7 +117,7 @@ namespace DeliveryTgBot.Handlers
             var data = callbackQuery.Data;
 
             // Remove reply markup for certain callbacks
-            if (data.StartsWith("city_") || data.StartsWith(new RequestDateInfo().KeyWord) || data.StartsWith("driver_"))
+            if (data.StartsWith("city_") || data.StartsWith(new RequestDateInfo().KeyWord))
             {
                 await _telegramService.EditMessageReplyMarkupAsync(
                     chatId,
@@ -150,16 +147,7 @@ namespace DeliveryTgBot.Handlers
                 }
             }
 
-            // Handle driver selection
-            if (data.StartsWith("driver_"))
-            {
-                var handler = _callbackHandlers.OfType<DriverCallbackHandler>().FirstOrDefault();
-                if (handler != null)
-                {
-                    await handler.HandleAsync(chatId, data);
-                    return;
-                }
-            }
+            // Driver selection removed
 
             // Handle date selection
             if (data.StartsWith(new RequestDateInfo().KeyWord))

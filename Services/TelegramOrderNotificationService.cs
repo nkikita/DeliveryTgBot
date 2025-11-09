@@ -8,34 +8,34 @@ namespace DeliveryTgBot.Services
     public class TelegramOrderNotificationService : IOrderNotificationService
     {
         private readonly ITelegramService _telegramService;
-        private readonly IDriverService _driverService;
+        private readonly IConfigurationService _configurationService;
 
         public TelegramOrderNotificationService(
             ITelegramService telegramService,
-            IDriverService driverService)
+            IConfigurationService configurationService)
         {
             _telegramService = telegramService;
-            _driverService = driverService;
+            _configurationService = configurationService;
         }
 
-        public async Task NotifyDriverAsync(Order order)
+        public async Task NotifyManagerAsync(Order order)
         {
-            if (order.AssignedDriverId == null)
-                throw new InvalidOperationException("У заказа нет назначенного водителя.");
+            var managerId = _configurationService.ManagerTelegramUserId;
 
-            var driver = await _driverService.GetDriverByIdAsync(order.AssignedDriverId.Value);
-            if (driver == null)
-                throw new InvalidOperationException("Водитель не найден.");
+            string usernamePart = string.IsNullOrWhiteSpace(order.ClientTelegramUsername)
+                ? "(username не указан)"
+                : $"@{order.ClientTelegramUsername}";
 
-            string message = $"🚚 Новый заказ от @{order.ClientTelegramUsername}!\n" +
-                            $"📍 Город: {driver.City.CityName}\n" +
-                            $"🚩 Адрес: {order.DeliveryAdress}\n"+
-                            $"📦 Объем: {order.Volume}\n" +
-                            $"🚗 Кол-во авто: {order.VehiclesCount}\n" +
-                            $"📅 Дата: {order.DeliveryDateTime:yyyy-MM-dd HH:mm}\n" +
-                            $"💬 Комментарий: {(string.IsNullOrWhiteSpace(order.CommentFromUsers) ? "нет" : order.CommentFromUsers)}";
+            string message =
+                $"📦 Новый заказ от {usernamePart}\n" +
+                $"📍 Город: {order.City.CityName}\n" +
+                $"🚗 Кол-во авто: {order.VehiclesCount}\n" +
+                $"🔢 Объем: {order.Volume}\n" +
+                $"📅 Доставка: {order.DeliveryDateTime:yyyy-MM-dd HH:mm}\n" +
+                $"🏠 Адрес: {order.DeliveryAdress}\n" +
+                $"💬 Комментарий: {(string.IsNullOrWhiteSpace(order.CommentFromUsers) ? "нет" : order.CommentFromUsers)}";
 
-            await _telegramService.SendTextMessageAsync(driver.TelegramId, message);
+            await _telegramService.SendTextMessageAsync(managerId, message);
         }
     }
 
