@@ -23,7 +23,7 @@ var host = Host.CreateDefaultBuilder(args)
         {
             var config = serviceProvider.GetRequiredService<IConfigurationService>();
             options.UseNpgsql(config.DatabaseConnectionString)
-                   .LogTo(Console.WriteLine, LogLevel.Information)
+                   .LogTo(msg => Console.WriteLine(msg), LogLevel.Warning)
                    .EnableSensitiveDataLogging();
         });
 
@@ -76,11 +76,12 @@ var receiverOptions = new ReceiverOptions { AllowedUpdates = null };
 
 telegramService.BotClient.StartReceiving(
     async (botClient, update, cancellationToken) => await botHandler.HandleUpdateAsync(update),
-    async (botClient, exception, cancellationToken) => Console.WriteLine($"Ошибка: {exception.Message}"),
+    async (botClient, exception, cancellationToken) =>{var logger = host.Services.GetRequiredService<ILogger<Program>>();logger.LogError(exception, "Ошибка Telegram polling");},
     receiverOptions,
     cts.Token
 );
 
-Console.WriteLine("Бот запущен...");
+var logger = host.Services.GetRequiredService<ILogger<Program>>();
+logger.LogInformation("Бот запущен...");
 Console.ReadLine();
 cts.Cancel();

@@ -1,8 +1,9 @@
-using System.Collections.Concurrent;
-using DeliveryTgBot.Interfaces;
-using DeliveryTgBot.Handlers.Commands;
 using DeliveryTgBot.Handlers.Callbacks;
+using DeliveryTgBot.Handlers.Commands;
+using DeliveryTgBot.Interfaces;
 using DeliveryTgBot.Services;
+using Microsoft.Extensions.Logging;
+using System.Collections.Concurrent;
 
 namespace DeliveryTgBot.Handlers
 {
@@ -21,7 +22,7 @@ namespace DeliveryTgBot.Handlers
         
         // Callback handlers
         private readonly IEnumerable<ICallbackHandler> _callbackHandlers;
-
+        private readonly ILogger<BotHandler> _logger;
         public BotHandler(
             ITelegramService telegramService,
             IOrderService orderService,
@@ -30,14 +31,16 @@ namespace DeliveryTgBot.Handlers
             ICalendarService calendarService,
             IOrderNotificationService orderNotificationService,
             IKeyboardBuilder keyboardBuilder,
-            IAddressService addressService)
+            IAddressService addressService,
+            ILogger<BotHandler> logger)
         {
             _telegramService = telegramService;
             _orderCacheService = orderCacheService;
             _cityService = cityService;
             _calendarService = calendarService;
             _orderNotificationService = orderNotificationService;
-            
+            _logger = logger;
+
             // Initialize order state manager
             _orderStateManager = new OrderStateManager(telegramService, orderService, orderNotificationService);
             
@@ -66,8 +69,9 @@ namespace DeliveryTgBot.Handlers
 
         public async Task HandleUpdateAsync(Update update)
         {
-            Console.WriteLine($"Получено обновление: {update.Type} от {update.Message?.Chat.Id ?? update.CallbackQuery?.Message.Chat.Id}");
-            
+            _logger.LogInformation("Получено обновление: {UpdateType} от {ChatId}",
+                 update.Type,
+                 update.Message?.Chat.Id ?? update.CallbackQuery?.Message.Chat.Id);
             try
             {
                 if (update.Type == UpdateType.Message && update.Message?.Text != null)
@@ -81,7 +85,7 @@ namespace DeliveryTgBot.Handlers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Ошибка при обработке обновления: {ex.Message}");
+                _logger.LogError(ex, "Ошибка при обработке обновления");
                 // Log error and potentially notify admin
             }
         }

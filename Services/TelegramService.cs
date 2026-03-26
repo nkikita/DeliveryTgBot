@@ -1,13 +1,17 @@
+using Microsoft.Extensions.Logging;
+
 namespace DeliveryTgBot.Services
 {
  // Класс
     public class TelegramService : ITelegramService
     {
         public ITelegramBotClient BotClient { get; }
+        private readonly ILogger<TelegramService> _logger;
 
-        public TelegramService(ITelegramBotClient botClient)
+        public TelegramService(ITelegramBotClient botClient, ILogger<TelegramService> logger)
         {
             BotClient = botClient;
+            _logger = logger;
         }
 
         public async Task SendTextMessageAsync(long chatId, string text, InlineKeyboardMarkup? replyMarkup = null)
@@ -23,7 +27,7 @@ namespace DeliveryTgBot.Services
             }
             catch (Telegram.Bot.Exceptions.ApiRequestException ex)
             {
-                Console.WriteLine($"Telegram API Error: {ex.Message}");
+                _logger.LogError(ex, "Ошибка Telegram API");
             }
         }
     }

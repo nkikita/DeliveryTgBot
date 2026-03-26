@@ -1,15 +1,17 @@
 using DeliveryTgbot.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 
 
 public class OrderService : IOrderService
 {
     private readonly DeliveryDbContext _context;
-
-    public OrderService(DeliveryDbContext context)
+    private readonly ILogger<OrderService> _logger;
+    public OrderService(DeliveryDbContext context, ILogger<OrderService> logger)
     {
         _context = context;
+        _logger = logger;
     }
     public async Task ResetOrderAsync(long chatId)
     {
@@ -68,7 +70,7 @@ public class OrderService : IOrderService
     {
         while (ex != null)
         {
-            Console.WriteLine($"Exception: {ex.Message}");
+            _logger.LogError(ex, "Ошибка при работе с заказом");
             ex = ex.InnerException;
         }
     }
